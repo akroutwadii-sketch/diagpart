@@ -34,7 +34,7 @@ android {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = buildTypes.getByName("debug").signingConfig
         }
     }
 }
@@ -42,3 +42,5 @@ android {
 flutter {
     source = "../.."
 }
+
+
