@@ -11,21 +11,14 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.6'
-
-      - name: Patch dependencies
-        run: |
-          sed -i '/open_file/d' pubspec.yaml || true
-          echo "" >> pubspec.yaml
-          echo "dependency_overrides:" >> pubspec.yaml
-          echo "  path: 1.8.3" >> pubspec.yaml
+          flutter-version: '2.10.5'
 
       - name: Fetch dependencies
         run: flutter pub get || true
 
       - name: Build Release APK
-        run: flutter build apk --release --ignore-deprecation
-        
+        run: flutter build apk --release --no-sound-null-safety || flutter build apk --release
+
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
