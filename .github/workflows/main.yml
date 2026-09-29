@@ -18,6 +18,10 @@ jobs:
           rm -rf android
           flutter create --platforms=android .
 
+      - name: Fix open_file Import in Dart Code
+        run: |
+          sed -i 's/package:open_file\/open_file.dart/package:open_file_plus\/open_file_plus.dart/g' lib/excel_helper.dart || true
+
       - name: Install Dependencies
         run: flutter pub get
 
