@@ -5,6 +5,9 @@ on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: diagpart
 
     steps:
       - uses: actions/checkout@v4
@@ -13,20 +16,20 @@ jobs:
         with:
           flutter-version: '3.19.6'
 
-      - name: Patch dependencies and fix embedding
+      - name: Patch dependencies
         run: |
-          if [ -d "diagpart" ]; then cd diagpart; fi
           sed -i '/open_file/d' pubspec.yaml
           echo "" >> pubspec.yaml
           echo "dependency_overrides:" >> pubspec.yaml
           echo "  path: 1.8.3" >> pubspec.yaml
 
       - name: Fetch dependencies
-        run: |
-          if [ -d "diagpart" ]; then cd diagpart; fi
-          flutter pub get || true
+        run: flutter pub get || true
 
       - name: Build Release APK
-        run: |
-          if [ -d "diagpart" ]; then cd diagpart; fi
-          flutter build apk --release --no-sound-null-safety || flutter build apk --release
+        run: flutter build apk --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: '**/build/app/outputs/flutter-apk/app-release.apk'
