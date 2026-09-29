@@ -1,5 +1,5 @@
 import 'package:sqflite/sqflite.dart' as sql;
-import 'package:path/path.dart' as path;
+import 'package:path/path' as path;
 
 class DBHelper {
   static Future<sql.Database> database() async {
@@ -8,7 +8,7 @@ class DBHelper {
       path.join(dbPath, 'diagpart_inventory.db'),
       onCreate: (db, version) {
         return db.execute(
-          'CREATE TABLE parts(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, partNumber TEXT, brandModel TEXT, price REAL, location TEXT, imagePath TEXT, isSold INTEGER)',
+          'CREATE TABLE parts(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, partNumber TEXT, price REAL, location TEXT, imagePath TEXT)',
         );
       },
       version: 1,
@@ -26,21 +26,25 @@ class DBHelper {
 
   static Future<List<Map<String, dynamic>>> getData(String table) async {
     final db = await DBHelper.database();
-    return db.query(table, orderBy: "id DESC");
+    return db.query(table);
   }
 
-  static Future<void> updateSoldStatus(int id, int isSold) async {
+  static Future<int> update(String table, Map<String, dynamic> data) async {
     final db = await DBHelper.database();
-    await db.update(
-      'parts',
-      {'isSold': isSold},
+    return await db.update(
+      table,
+      data,
       where: 'id = ?',
-      whereArgs: [id],
+      whereArgs: [data['id']],
     );
   }
 
-  static Future<void> delete(int id) async {
+  static Future<int> delete(String table, int id) async {
     final db = await DBHelper.database();
-    await db.delete('parts', where: 'id = ?', whereArgs: [id]);
+    return await db.delete(
+      table,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 }
