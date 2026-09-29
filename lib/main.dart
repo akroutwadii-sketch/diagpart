@@ -41,7 +41,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   void _refreshItems() async {
-    final data = await DBHelper.instance.getItems();
+    final data = await DBHelper.getData('parts');
     setState(() {
       _items = data;
       _filteredItems = data;
@@ -51,7 +51,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   void _filterItems(String query) {
     final filtered = _items.where((item) {
       final name = (item['name'] ?? '').toString().toLowerCase();
-      final partNumber = (item['part_number'] ?? item['partNumber'] ?? '').toString().toLowerCase();
+      final partNumber = (item['partNumber'] ?? '').toString().toLowerCase();
       final location = (item['location'] ?? '').toString().toLowerCase();
       final q = query.toLowerCase();
       return name.contains(q) || partNumber.contains(q) || location.contains(q);
@@ -130,12 +130,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ElevatedButton(
                   onPressed: () async {
                     if (nameController.text.isNotEmpty) {
-                      await DBHelper.instance.insertItem({
+                      await DBHelper.insert('parts', {
                         'name': nameController.text,
-                        'part_number': partNumberController.text,
+                        'partNumber': partNumberController.text,
                         'price': double.tryParse(priceController.text) ?? 0.0,
                         'location': locationController.text,
-                        'image_path': imagePath,
+                        'imagePath': imagePath,
                       });
                       _refreshItems();
                       Navigator.pop(context);
@@ -191,8 +191,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     itemCount: _filteredItems.length,
                     itemBuilder: (context, index) {
                       final item = _filteredItems[index];
-                      final String? imgPath = item['image_path'] ?? item['imagePath'];
-                      final String partNum = item['part_number'] ?? item['partNumber'] ?? '';
+                      final String? imgPath = item['imagePath'];
+                      final String partNum = item['partNumber'] ?? '';
 
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
