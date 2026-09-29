@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'database_helper.dart'; // تأكد من اسم ملف قاعدة البيانات لديك
+import 'db_helper.dart';
 
 class EditItemScreen extends StatefulWidget {
   final Map<String, dynamic> item;
@@ -55,17 +55,16 @@ class _EditItemScreenState extends State<EditItemScreen> {
       'image_path': imagePath,
     };
 
-    await DatabaseHelper.instance.updateItem(updatedItem);
-    Navigator.pop(context, true);
+    await DBHelper.instance.updateItem(updatedItem);
+    if (mounted) Navigator.pop(context, true);
   }
 
-  // دالة حذف القطعة
   Future<void> _deleteItem() async {
-    bool? confirm = await showDialog(
+    bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('تأكيد الحذف'),
-        content: const Text('هل أنت أؤكد من أنك تريد حذف هذه القطعة نهائياً؟'),
+        content: const Text('هل أنت تأكد من أنك تريد حذف هذه القطعة نهائياً؟'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -81,8 +80,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
     );
 
     if (confirm == true) {
-      await DatabaseHelper.instance.deleteItem(widget.item['id']);
-      Navigator.pop(context, true);
+      await DBHelper.instance.deleteItem(widget.item['id']);
+      if (mounted) Navigator.pop(context, true);
     }
   }
 
@@ -100,7 +99,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
           IconButton(
             icon: const Icon(Icons.save),
             onPressed: _saveChanges,
-            tooltip: 'حفظ',
+            tooltip: 'حفظ التغييرات',
           ),
         ],
       ),
