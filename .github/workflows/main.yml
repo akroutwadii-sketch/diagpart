@@ -13,21 +13,25 @@ jobs:
         with:
           flutter-version: '3.19.6'
 
-      - name: Patch dependencies
+      - name: Locate project and patch pubspec
         run: |
-          sed -i '/open_file/d' diagpart/pubspec.yaml || true
-          echo "" >> diagpart/pubspec.yaml
-          echo "dependency_overrides:" >> diagpart/pubspec.yaml
-          echo "  path: 1.8.3" >> diagpart/pubspec.yaml
+          TARGET_DIR=$(find . -name "pubspec.yaml" -not -path "*/.*" | head -n 1 | xargs dirname)
+          cd "$TARGET_DIR"
+          sed -i '/open_file/d' pubspec.yaml || true
+          echo "" >> pubspec.yaml
+          echo "dependency_overrides:" >> pubspec.yaml
+          echo "  path: 1.8.3" >> pubspec.yaml
 
       - name: Fetch dependencies
         run: |
-          cd diagpart
+          TARGET_DIR=$(find . -name "pubspec.yaml" -not -path "*/.*" | head -n 1 | xargs dirname)
+          cd "$TARGET_DIR"
           flutter pub get || true
 
       - name: Build Release APK
         run: |
-          cd diagpart
+          TARGET_DIR=$(find . -name "pubspec.yaml" -not -path "*/.*" | head -n 1 | xargs dirname)
+          cd "$TARGET_DIR"
           flutter build apk --release
 
       - uses: actions/upload-artifact@v4
