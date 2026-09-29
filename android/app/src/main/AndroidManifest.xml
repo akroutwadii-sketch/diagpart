@@ -3,6 +3,7 @@
         android:label="diagpart"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -24,6 +25,7 @@
             </intent-filter>
         </activity>
 
+        <!-- تفعيل V2 Embedding بشكل صريح -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
