@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'db_helper.dart';
 import 'excel_helper.dart';
+import 'edit_item_screen.dart';
 
 void main() {
   runApp(DiagPartApp());
@@ -29,152 +30,124 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
-  List<Map<String, dynamic>> _allParts = [];
-  List<Map<String, dynamic>> _filteredParts = [];
-  bool _isLoading = true;
-  bool _isSearching = false;
-
-  final _searchController = TextEditingController();
-  final _nameController = TextEditingController();
-  final _partNumController = TextEditingController();
-  final _brandController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _locationController = TextEditingController();
-
-  File? _selectedImage;
-  final ImagePicker _picker = ImagePicker();
+  List<Map<String, dynamic>> _items = [];
+  List<Map<String, dynamic>> _filteredItems = [];
+  TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _fetchAndRefreshParts();
+    _refreshItems();
   }
 
-  Future<void> _fetchAndRefreshParts() async {
-    final dataList = await DBHelper.getData('parts');
+  void _refreshItems() async {
+    final data = await DBHelper.instance.getItems();
     setState(() {
-      _allParts = dataList;
-      _filteredParts = dataList;
-      _isLoading = false;
+      _items = data;
+      _filteredItems = data;
     });
   }
 
-  void _filterParts(String query) {
-    if (query.isEmpty) {
-      setState(() {
-        _filteredParts = _allParts;
-      });
-    } else {
-      setState(() {
-        _filteredParts = _allParts.where((part) {
-          final name = part['name'].toString().toLowerCase();
-          final partNum = part['partNumber'].toString().toLowerCase();
-          final brand = part['brandModel'].toString().toLowerCase();
-          final searchLower = query.toLowerCase();
+  void _filterItems(String query) {
+    final filtered = _items.where((item) {
+      final name = (item['name'] ?? '').toString().toLowerCase();
+      final partNumber = (item['part_number'] ?? item['partNumber'] ?? '').toString().toLowerCase();
+      final location = (item['location'] ?? '').toString().toLowerCase();
+      final q = query.toLowerCase();
+      return name.contains(q) || partNumber.contains(q) || location.contains(q);
+    }).toList();
 
-          return name.contains(searchLower) ||
-                 partNum.contains(searchLower) ||
-                 brand.contains(searchLower);
-        }).toList();
-      });
-    }
+    setState(() {
+      _filteredItems = filtered;
+    });
   }
 
-  Future<void> _takePhoto() async {
-    final pickedFile = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 70,
-    );
+  void _showAddItemDialog() {
+    final nameController = TextEditingController();
+    final partNumberController = TextEditingController();
+    final priceController = TextEditingController();
+    final locationController = TextEditingController();
+    String? imagePath;
 
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
-    }
-  }
-
-  Future<void> _addPart() async {
-    if (_nameController.text.isEmpty) return;
-
-    final newPart = {
-      'name': _nameController.text,
-      'partNumber': _partNumController.text,
-      'brandModel': _brandController.text,
-      'price': double.tryParse(_priceController.text) ?? 0.0,
-      'location': _locationController.text,
-      'imagePath': _selectedImage?.path,
-      'isSold': 0,
-    };
-
-    await DBHelper.insert('parts', newPart);
-    await _fetchAndRefreshParts();
-
-    _nameController.clear();
-    _partNumController.clear();
-    _brandController.clear();
-    _priceController.clear();
-    _locationController.clear();
-    _selectedImage = null;
-
-    Navigator.of(context).pop();
-  }
-
-  void _showAddDialog() {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            top: 16, left: 16, right: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('إضافة قطعة جديدة - DiagPart', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                SizedBox(height: 10),
-                GestureDetector(
-                  onTap: () async {
-                    await _takePhoto();
-                    setModalState(() {});
-                  },
-                  child: Container(
-                    height: 120,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateSB) {
+            return AlertDialog(
+              title: const Text('إضافة قطعة جديدة'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        final picker = ImagePicker();
+                        final picked = await picker.pickImage(source: ImageSource.gallery);
+                        if (picked != null) {
+                          setStateSB(() {
+                            imagePath = picked.path;
+                          });
+                        }
+                      },
+                      child: Container(
+                        height: 100,
+                        width: 100,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: imagePath != null
+                            ? Image.file(File(imagePath!), fit: BoxFit.cover)
+                            : const Icon(Icons.add_a_photo, size: 40),
+                      ),
                     ),
-                    child: _selectedImage != null
-                        ? Image.file(_selectedImage!, fit: BoxFit.cover)
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.camera_alt, size: 40, color: Colors.grey[700]),
-                              SizedBox(height: 5),
-                              Text('التقط صورة للقطعة'),
-                            ],
-                          ),
-                  ),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'اسم القطعة / السيارة'),
+                    ),
+                    TextField(
+                      controller: partNumberController,
+                      decoration: const InputDecoration(labelText: 'رقم القطعة'),
+                    ),
+                    TextField(
+                      controller: priceController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'السعر'),
+                    ),
+                    TextField(
+                      controller: locationController,
+                      decoration: const InputDecoration(labelText: 'المكان'),
+                    ),
+                  ],
                 ),
-                TextField(controller: _nameController, decoration: InputDecoration(labelText: 'اسم القطعة')),
-                TextField(controller: _partNumController, decoration: InputDecoration(labelText: 'رقم القطعة (Part Number / OE)')),
-                TextField(controller: _brandController, decoration: InputDecoration(labelText: 'السيارة / الموديل')),
-                TextField(controller: _priceController, decoration: InputDecoration(labelText: 'السعر'), keyboardType: TextInputType.number),
-                TextField(controller: _locationController, decoration: InputDecoration(labelText: 'مكان التخزين (الرف)')),
-                SizedBox(height: 16),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('إلغاء'),
+                ),
                 ElevatedButton(
-                  onPressed: _addPart,
-                  child: Text('حفظ القطعة'),
-                )
+                  onPressed: () async {
+                    if (nameController.text.isNotEmpty) {
+                      await DBHelper.instance.insertItem({
+                        'name': nameController.text,
+                        'part_number': partNumberController.text,
+                        'price': double.tryParse(priceController.text) ?? 0.0,
+                        'location': locationController.text,
+                        'image_path': imagePath,
+                      });
+                      _refreshItems();
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text('إضافة'),
+                ),
               ],
-            ),
-          ),
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -182,114 +155,117 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: TextStyle(color: Colors.black),
-                decoration: InputDecoration(
-                  hintText: 'ابحث برقم القطعة أو الاسم...',
-                  border: InputBorder.none,
-                ),
-                onChanged: _filterParts,
-              )
-            : Text('DiagPart - مخزون الورشة'),
-        centerTitle: true,
+        title: const Text('DiagPart - مخزون الورشة'),
         actions: [
           IconButton(
-            icon: Icon(Icons.table_chart),
-            tooltip: 'تصدير إلى Excel',
+            icon: const Icon(Icons.table_chart),
             onPressed: () async {
-              if (_allParts.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('لا توجد قطع لتصديرها!')),
-                );
-                return;
-              }
-              await ExcelHelper.exportToExcel(_allParts);
-            },
-          ),
-          IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                if (_isSearching) {
-                  _isSearching = false;
-                  _searchController.clear();
-                  _filterParts('');
-                } else {
-                  _isSearching = true;
-                }
-              });
+              await ExcelHelper.exportToExcel(_items);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('تم تصدير ملف Excel بنجاح')),
+              );
             },
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _filteredParts.isEmpty
-              ? Center(child: Text('لا توجد قطعة مسجلة مطابقة'))
-              : ListView.builder(
-                  itemCount: _filteredParts.length,
-                  itemBuilder: (ctx, index) {
-                    final item = _filteredParts[index];
-                    final bool isSold = item['isSold'] == 1;
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _filterItems,
+              decoration: InputDecoration(
+                hintText: 'بحث باسم القطعة، الرقم، أو المكان...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _filteredItems.isEmpty
+                ? const Center(child: Text('لا توجد قطع مسجلة'))
+                : ListView.builder(
+                    itemCount: _filteredItems.length,
+                    itemBuilder: (context, index) {
+                      final item = _filteredItems[index];
+                      final String? imgPath = item['image_path'] ?? item['imagePath'];
+                      final String partNum = item['part_number'] ?? item['partNumber'] ?? '';
 
-                    return Card(
-                      margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      child: ListTile(
-                        leading: item['imagePath'] != null && File(item['imagePath']).existsSync()
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.file(
-                                  File(item['imagePath']),
-                                  width: 60, height: 60, fit: BoxFit.cover,
-                                ),
-                              )
-                            : Container(
-                                width: 60, height: 60,
-                                color: Colors.grey[300],
-                                child: Icon(Icons.build),
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () async {
+                            bool? updated = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EditItemScreen(item: item),
                               ),
-                        title: Text(
-                          '${item['name']} - ${item['brandModel']}',
-                          style: TextStyle(
-                            decoration: isSold ? TextDecoration.lineThrough : null,
+                            );
+                            if (updated == true) {
+                              _refreshItems();
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 70,
+                                  height: 70,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: imgPath != null && imgPath.isNotEmpty && File(imgPath).existsSync()
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Image.file(File(imgPath), fit: BoxFit.cover),
+                                        )
+                                      : const Icon(Icons.build, size: 35, color: Colors.grey),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item['name'] ?? '',
+                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      ),
+                                      if (partNum.isNotEmpty)
+                                        Text('رقم القطعة: $partNum', style: const TextStyle(color: Colors.black87)),
+                                      if ((item['location'] ?? '').toString().isNotEmpty)
+                                        Text('المكان: ${item['location']}', style: const TextStyle(color: Colors.grey)),
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '${item['price'] ?? 0.0}',
+                                      style: const TextStyle(fontSize: 15, color: Colors.green, fontWeight: FontWeight.bold),
+                                    ),
+                                    const Text('متاحة', style: TextStyle(color: Colors.blue, fontSize: 12)),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        subtitle: Text('رقم القطعة: ${item['partNumber']}\nالمكان: ${item['location']}'),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '${item['price']}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: isSold ? Colors.grey : Colors.green,
-                              ),
-                            ),
-                            Text(
-                              isSold ? 'مباعة' : 'متاحة',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isSold ? Colors.red : Colors.blue,
-                              ),
-                            ),
-                          ],
-                        ),
-                        onLongPress: () async {
-                          await DBHelper.updateSoldStatus(item['id'], isSold ? 0 : 1);
-                          _fetchAndRefreshParts();
-                        },
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
-        child: Icon(Icons.add),
+        onPressed: _showAddItemDialog,
+        child: const Icon(Icons.add),
       ),
     );
   }
