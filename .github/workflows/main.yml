@@ -7,11 +7,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.16.9'
+          flutter-version: '3.19.6'
+
+      # حل تعارض مكتبة path تلقائياً
+      - name: Override path dependency
+        run: |
+          echo "dependency_overrides:" >> pubspec.yaml
+          echo "  path: 1.8.3" >> pubspec.yaml
+
       - run: flutter pub get
       - run: flutter build apk --release --android-skip-build-dependency-validation
+
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
