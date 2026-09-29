@@ -5,9 +5,6 @@ on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
 
     steps:
       - uses: actions/checkout@v4
@@ -27,9 +24,11 @@ jobs:
         run: flutter pub get || true
 
       - name: Build Release APK
-        run: flutter build apk --release
+        run: |
+          if [ -d "diagpart" ]; then cd diagpart; fi
+          flutter build apk --release
 
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: '**/build/app/outputs/flutter-apk/app-release.apk'
