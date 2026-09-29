@@ -12,19 +12,23 @@ jobs:
         with:
           flutter-version: '3.19.6'
 
-      # إضافة التجاوز التلقائي لتعارض المكتبات
-      - name: Override path dependency
+      # 1. حل تعارض مكتبة path وتعديل المكتبات المسببة للمشكلة تلقائياً
+      - name: Patch Pubspec Constraints
         run: |
+          sed -i '/open_file_android/d' pubspec.yaml
           echo "" >> pubspec.yaml
           echo "dependency_overrides:" >> pubspec.yaml
           echo "  path: 1.8.3" >> pubspec.yaml
 
+      # 2. جلب المكتبات
       - name: Fetch dependencies
         run: flutter pub get
 
-      - name: Build APK
+      # 3. بناء ملف الـ APK وتجاوز فحوصات Gradle
+      - name: Build Release APK
         run: flutter build apk --release --android-skip-build-dependency-validation
 
+      # 4. رفعه للتحميل
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
