@@ -9,13 +9,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  sqflite: ^2.3.0
-  path: ^1.9.0
-  image_picker: ^1.1.2
-  path_provider: ^2.1.2
-  excel: ^4.0.3
-  open_file_plus: ^3.4.1
-  cupertino_icons: ^1.0.6
+  sqflite: any
+  path: any
+  image_picker: any
+  path_provider: any
+  excel: any
+  open_file_plus: any
+  cupertino_icons: any
 
 dev_dependencies:
   flutter_test:
