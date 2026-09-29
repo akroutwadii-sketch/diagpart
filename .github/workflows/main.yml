@@ -11,7 +11,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.3.10'
+          flutter-version: '3.19.6'
 
       - name: Patch dependencies
         run: |
@@ -24,8 +24,8 @@ jobs:
         run: flutter pub get || true
 
       - name: Build Release APK
-        run: flutter build apk --release --no-sound-null-safety || flutter build apk --release
-
+        run: flutter build apk --release --ignore-deprecation
+        
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
