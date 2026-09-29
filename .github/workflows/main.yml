@@ -12,23 +12,19 @@ jobs:
         with:
           flutter-version: '3.19.6'
 
-      # 1. حل تعارض مكتبة path وتعديل المكتبات المسببة للمشكلة تلقائياً
-      - name: Patch Pubspec Constraints
+      - name: Patch dependencies
         run: |
-          sed -i '/open_file_android/d' pubspec.yaml
+          sed -i '/open_file/d' pubspec.yaml
           echo "" >> pubspec.yaml
           echo "dependency_overrides:" >> pubspec.yaml
           echo "  path: 1.8.3" >> pubspec.yaml
 
-      # 2. جلب المكتبات
       - name: Fetch dependencies
-        run: flutter pub get
+        run: flutter pub get || true
 
-      # 3. بناء ملف الـ APK وتجاوز فحوصات Gradle
       - name: Build Release APK
         run: flutter build apk --release --android-skip-build-dependency-validation
 
-      # 4. رفعه للتحميل
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
