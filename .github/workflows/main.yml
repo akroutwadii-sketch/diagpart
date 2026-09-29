@@ -15,18 +15,22 @@ jobs:
 
       - name: Patch dependencies
         run: |
-          sed -i '/open_file/d' pubspec.yaml
-          echo "" >> pubspec.yaml
-          echo "dependency_overrides:" >> pubspec.yaml
-          echo "  path: 1.8.3" >> pubspec.yaml
+          sed -i '/open_file/d' diagpart/pubspec.yaml || true
+          echo "" >> diagpart/pubspec.yaml
+          echo "dependency_overrides:" >> diagpart/pubspec.yaml
+          echo "  path: 1.8.3" >> diagpart/pubspec.yaml
 
       - name: Fetch dependencies
-        run: flutter pub get || true
+        run: |
+          cd diagpart
+          flutter pub get || true
 
       - name: Build Release APK
-        run: flutter build apk --release
+        run: |
+          cd diagpart
+          flutter build apk --release
 
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: '**/build/app/outputs/flutter-apk/app-release.apk'
