@@ -23,16 +23,10 @@ class _EditItemScreenState extends State<EditItemScreen> {
   void initState() {
     super.initState();
     nameController = TextEditingController(text: widget.item['name'] ?? '');
-    partNumberController = TextEditingController(
-      text: widget.item['part_number'] ?? widget.item['partNumber'] ?? '',
-    );
-    priceController = TextEditingController(
-      text: widget.item['price']?.toString() ?? '0.0',
-    );
-    locationController = TextEditingController(
-      text: widget.item['location'] ?? '',
-    );
-    imagePath = widget.item['image_path'] ?? widget.item['imagePath'];
+    partNumberController = TextEditingController(text: widget.item['partNumber'] ?? '');
+    priceController = TextEditingController(text: widget.item['price']?.toString() ?? '0.0');
+    locationController = TextEditingController(text: widget.item['location'] ?? '');
+    imagePath = widget.item['imagePath'];
   }
 
   Future<void> _pickImage() async {
@@ -49,13 +43,13 @@ class _EditItemScreenState extends State<EditItemScreen> {
     Map<String, dynamic> updatedItem = {
       'id': widget.item['id'],
       'name': nameController.text,
-      'part_number': partNumberController.text,
+      'partNumber': partNumberController.text,
       'price': double.tryParse(priceController.text) ?? 0.0,
       'location': locationController.text,
-      'image_path': imagePath,
+      'imagePath': imagePath,
     };
 
-    await DBHelper.instance.updateItem(updatedItem);
+    await DBHelper.update('parts', updatedItem);
     if (mounted) Navigator.pop(context, true);
   }
 
@@ -80,7 +74,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
     );
 
     if (confirm == true) {
-      await DBHelper.instance.deleteItem(widget.item['id']);
+      await DBHelper.delete('parts', widget.item['id']);
       if (mounted) Navigator.pop(context, true);
     }
   }
@@ -94,12 +88,12 @@ class _EditItemScreenState extends State<EditItemScreen> {
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.red),
             onPressed: _deleteItem,
-            tooltip: 'حذف القطعة',
+            tooltip: 'حذف',
           ),
           IconButton(
             icon: const Icon(Icons.save),
             onPressed: _saveChanges,
-            tooltip: 'حفظ التغييرات',
+            tooltip: 'حفظ',
           ),
         ],
       ),
@@ -110,19 +104,19 @@ class _EditItemScreenState extends State<EditItemScreen> {
             GestureDetector(
               onTap: _pickImage,
               child: Container(
-                height: 150,
-                width: 150,
+                height: 140,
+                width: 140,
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: imagePath != null && imagePath!.isNotEmpty
                     ? Image.file(File(imagePath!), fit: BoxFit.cover)
-                    : const Icon(Icons.camera_alt, size: 50),
+                    : const Icon(Icons.camera_alt, size: 50, color: Colors.grey),
               ),
             ),
-            const SizedBox(height: 10),
-            const Text('اضغط على الصورة لتغييرها', style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 8),
+            const Text('اضغط لتغيير الصورة', style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 20),
             TextField(
               controller: nameController,
