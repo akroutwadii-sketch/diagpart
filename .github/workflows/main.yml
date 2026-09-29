@@ -11,15 +11,17 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '2.10.5'
+          flutter-version: '3.19.6'
+          cache: true
 
-      - name: Fetch dependencies
-        run: flutter pub get || true
+      - name: Install Dependencies
+        run: flutter pub get
 
       - name: Build Release APK
-        run: flutter build apk --release --no-sound-null-safety || flutter build apk --release
+        run: flutter build apk --release
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: app-release
           path: build/app/outputs/flutter-apk/app-release.apk
