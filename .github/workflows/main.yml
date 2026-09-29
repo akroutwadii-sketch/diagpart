@@ -15,7 +15,7 @@ jobs:
 
       - name: Patch dependencies
         run: |
-          cd diagpart
+          if [ -d "diagpart" ]; then cd diagpart; fi
           sed -i '/open_file/d' pubspec.yaml
           echo "" >> pubspec.yaml
           echo "dependency_overrides:" >> pubspec.yaml
@@ -23,12 +23,12 @@ jobs:
 
       - name: Fetch dependencies
         run: |
-          cd diagpart
+          if [ -d "diagpart" ]; then cd diagpart; fi
           flutter pub get || true
 
       - name: Build Release APK
         run: |
-          cd diagpart
+          if [ -d "diagpart" ]; then cd diagpart; fi
           flutter build apk --release
 
       - uses: actions/upload-artifact@v4
