@@ -85,7 +85,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               title: const Text('إضافة قطعة جديدة'),
               content: SingleChildScrollView(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisSize: MinAxisSize.min,
                   children: [
                     GestureDetector(
                       onTap: () async {
