@@ -1,15 +1,20 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'db_helper.dart';
 import 'excel_helper.dart';
 import 'edit_item_screen.dart';
+import 'barcode_scanner_screen.dart';
 
 void main() {
-  runApp(DiagPartApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const DiagPartApp());
 }
 
 class DiagPartApp extends StatelessWidget {
+  const DiagPartApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -19,12 +24,14 @@ class DiagPartApp extends StatelessWidget {
         primarySwatch: Colors.blueGrey,
         useMaterial3: true,
       ),
-      home: InventoryScreen(),
+      home: const InventoryScreen(),
     );
   }
 }
 
 class InventoryScreen extends StatefulWidget {
+  const InventoryScreen({Key? key}) : super(key: key);
+
   @override
   _InventoryScreenState createState() => _InventoryScreenState();
 }
@@ -32,7 +39,7 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   List<Map<String, dynamic>> _items = [];
   List<Map<String, dynamic>> _filteredItems = [];
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -91,24 +98,59 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         }
                       },
                       child: Container(
-                        height: 100,
-                        width: 100,
+                        height: 90,
+                        width: 90,
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: imagePath != null
                             ? Image.file(File(imagePath!), fit: BoxFit.cover)
-                            : const Icon(Icons.add_a_photo, size: 40),
+                            : const Icon(Icons.add_a_photo, size: 35),
                       ),
                     ),
+                    const SizedBox(height: 8),
                     TextField(
                       controller: nameController,
                       decoration: const InputDecoration(labelText: 'اسم القطعة / السيارة'),
                     ),
-                    TextField(
-                      controller: partNumberController,
-                      decoration: const InputDecoration(labelText: 'رقم القطعة'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: partNumberController,
+                            decoration: const InputDecoration(labelText: 'رقم القطعة'),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.qr_code_scanner, color: Colors.blue),
+                          onPressed: () async {
+                            final res = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
+                            );
+                            if (res != null) {
+                              setStateSB(() => partNumberController.text = res);
+                            }
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.camera_alt, color: Colors.green),
+                          onPressed: () async {
+                            final picker = ImagePicker();
+                            final XFile? img = await picker.pickImage(source: ImageSource.camera);
+                            if (img != null) {
+                              final inputImage = InputImage.fromFilePath(img.path);
+                              final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+                              final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
+                              await textRecognizer.close();
+                              if (recognizedText.text.isNotEmpty) {
+                                setStateSB(() => partNumberController.text = recognizedText.text.trim());
+                              }
+                            }
+                          },
+                        ),
+                      ],
                     ),
                     TextField(
                       controller: priceController,
@@ -138,7 +180,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         'imagePath': imagePath,
                       });
                       _refreshItems();
-                      Navigator.pop(context);
+                      if (mounted) Navigator.pop(context);
                     }
                   },
                   child: const Text('إضافة'),
@@ -155,15 +197,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('DiagPart - مخزون الورشة'),
+        title: const Text('DiagPart - إدارة القطع'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.table_chart),
+            icon: const Icon(Icons.description),
+            tooltip: 'تصدير Excel',
             onPressed: () async {
-              await ExcelHelper.exportToExcel(_items);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('تم تصدير ملف Excel بنجاح')),
-              );
+              String? path = await ExcelHelper.exportToExcel(_items);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(path != null ? 'تم حفظ الملف في: $path' : 'حدث خطأ أثناء التصدير')),
+                );
+              }
             },
           ),
         ],
@@ -186,7 +231,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ),
           Expanded(
             child: _filteredItems.isEmpty
-                ? const Center(child: Text('لا توجد قطع مسجلة'))
+                ? const Center(child: Text('لا توجد قطع مسجلة حتى الآن'))
                 : ListView.builder(
                     itemCount: _filteredItems.length,
                     itemBuilder: (context, index) {
@@ -196,8 +241,27 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(10),
+                        child: ListTile(
+                          leading: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: imgPath != null && imgPath.isNotEmpty && File(imgPath).existsSync()
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Image.file(File(imgPath), fit: BoxFit.cover),
+                                  )
+                                : const Icon(Icons.build, color: Colors.grey),
+                          ),
+                          title: Text(item['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('رقم: $partNum | المكان: ${item['location'] ?? ''}'),
+                          trailing: Text(
+                            '${item['price'] ?? 0.0}',
+                            style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
                           onTap: () async {
                             bool? updated = await Navigator.push(
                               context,
@@ -209,53 +273,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               _refreshItems();
                             }
                           },
-                          child: Padding(
-                            padding: const EdgeInsets.all(10.0),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 70,
-                                  height: 70,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: imgPath != null && imgPath.isNotEmpty && File(imgPath).existsSync()
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Image.file(File(imgPath), fit: BoxFit.cover),
-                                        )
-                                      : const Icon(Icons.build, size: 35, color: Colors.grey),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item['name'] ?? '',
-                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                      ),
-                                      if (partNum.isNotEmpty)
-                                        Text('رقم القطعة: $partNum', style: const TextStyle(color: Colors.black87)),
-                                      if ((item['location'] ?? '').toString().isNotEmpty)
-                                        Text('المكان: ${item['location']}', style: const TextStyle(color: Colors.grey)),
-                                    ],
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      '${item['price'] ?? 0.0}',
-                                      style: const TextStyle(fontSize: 15, color: Colors.green, fontWeight: FontWeight.bold),
-                                    ),
-                                    const Text('متاحة', style: TextStyle(color: Colors.blue, fontSize: 12)),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
                         ),
                       );
                     },
