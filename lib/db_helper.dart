@@ -5,7 +5,7 @@ class DBHelper {
   static Future<sql.Database> database() async {
     final dbPath = await sql.getDatabasesPath();
     return sql.openDatabase(
-      path.join(dbPath, 'diagpart_inventory.db'),
+      path.join(dbPath, 'diagpart_v2.db'),
       onCreate: (db, version) {
         return db.execute(
           'CREATE TABLE parts(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, partNumber TEXT, price REAL, location TEXT, imagePath TEXT)',
@@ -26,7 +26,7 @@ class DBHelper {
 
   static Future<List<Map<String, dynamic>>> getData(String table) async {
     final db = await DBHelper.database();
-    return db.query(table);
+    return db.query(table, orderBy: "id DESC");
   }
 
   static Future<int> update(String table, Map<String, dynamic> data) async {
