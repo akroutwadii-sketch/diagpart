@@ -16,10 +16,13 @@ dependencies:
   excel: any
   open_file_plus: any
   cupertino_icons: any
+  google_mlkit_text_recognition: any
+  mobile_scanner: any
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: any
 
 flutter:
   uses-material-design: true
